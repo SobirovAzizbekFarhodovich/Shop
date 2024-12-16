@@ -1,0 +1,25 @@
+p, unauthorized, /swagger/index.html, GET
+p, unauthorized, /swagger/swagger-ui.css, GET
+p, unauthorized, /swagger/swagger-ui-bundle.js, GET
+p, unauthorized, /swagger/favicon-32x32.png, GET
+p, unauthorized, /swagger/favicon-16x16.png, GET
+p, unauthorized, /swagger/swagger-ui-standalone-preset.js, GET
+p, unauthorized, /swagger/swagger/doc.json, GET
+p, unauthorized, /swagger/doc.json, GET
+p, unauthorized, /swagger/*any, GET
+p, unauthorized, /auth/login, POST
+p, unauthorized, /auth/register, POST
+
+p, user, /user/change-password, POST
+p, user, /user, GET
+p, user, /user/forgot-password, POST
+p, user, /user/reset-password, POST
+p, user, /user, PUT
+p, user, /user, DELETE
+
+g, admin, user
+p, admin, /admin/register, POST
+p, admin, /admin/all, GET
+p, admin, /admin/:id, GET
+p, admin, /admin/:id, PUT
+p, admin, /admin/:id, DELETE
