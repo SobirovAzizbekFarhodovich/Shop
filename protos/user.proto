@@ -49,6 +49,8 @@ message LoginUserResponse {
     string full_name = 4;
     string role = 5;
     string phone_number = 6;
+    string profile_picture = 7;
+    string bio = 8;
 }
 
 message GetByIdUserRequest {

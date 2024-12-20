@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	pb "auth/genprotos"
@@ -72,4 +73,100 @@ func (u *UserStorage) RegisterUser(user *pb.RegisterUserRequest) (*pb.RegisterUs
 		Id: userID,
 	}
 	return response, nil
+}
+
+func (u *UserStorage) LoginUser(user *pb.LoginUserRequest)(*pb.LoginUserResponse, error){
+	query := `SELECT id, email, password, full_name, profile_picture, bio, phone_number, role FROM users WHERE email = $1 and deleted_at = 0`
+	row := u.db.QueryRow(query, user.Email)
+	res := pb.LoginUserResponse{}
+	err := row.Scan(
+		&res.Id,
+		&res.Email,
+		&res.Password,
+		&res.FullName,
+		&res.ProfilePicture,
+		&res.Bio,
+		&res.PhoneNumber,
+		&res.Role,
+	)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			return nil, errors.New("invalid email or password")
+		}
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (u *UserStorage) GetByIdUser(id *pb.GetByIdUserRequest)(*pb.GetByIdUserResponse, error){
+	query := `SELECT email, full_name,profile_picture,bio,phone_number FROM users WHERE id = $1 and deleted_at = 0`
+	row := u.db.QueryRow(query,id.Id)
+	user := pb.GetByIdUserResponse{}
+	err := row.Scan(
+		&user.Email,
+		&user.FullName,
+		&user.ProfilePicture,
+		&user.Bio,
+		&user.PhoneNumber,
+	)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			return nil, errors.New("users not found")
+		}
+		return nil, err
+	}
+	return &user, err
+}
+
+func (u *UserStorage) UpdateUser(user *pb.UpdateUserRequest)(*pb.UpdateUserResponse, error){
+	query := `UPDATE users SET `
+	var condition []string
+	var args []interface{}
+
+	if user.Bio != "" && user.Bio != "string"{
+		condition = append(condition, fmt.Sprintf("bio = $%d",len(args) + 1))
+		args = append(args, user.Bio)
+	}
+	if user.Email != "" && user.Email != "string"{
+		condition = append(condition, fmt.Sprintf("email = $%d", len(args) + 1))
+		args = append(args, user.Email)
+	}
+	if user.FullName != "" && user.FullName != "string"{
+		condition = append(condition, fmt.Sprintf("full_name = $%d", len(args) + 1))
+		args = append(args, user.FullName)
+	}
+	if user.ProfilePicture != "" && user.ProfilePicture != "string"{
+		condition = append(condition, fmt.Sprintf("profile_picture = $%d", len(args) + 1))
+		args = append(args, user.ProfilePicture)
+	}
+	if len(condition) == 0{
+		return nil, errors.New("nothing to update")
+	}
+
+	query += strings.Join(condition, ", ")
+	query += fmt.Sprintf(" WHERE id = $%d RETURNING id, bio, email, full_name, profile_picture", len(args) + 1)
+	args = append(args, user.Id)
+
+	res := pb.UpdateUserResponse{}
+	row := u.db.QueryRow(query,args...)
+	err := row.Scan(
+		&res.Id,
+		&res.Bio,
+		&res.Email,
+		&res.FullName,
+		&res.ProfilePicture,
+	)
+	if err != nil{
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (u *UserStorage) DeleteUser(user *pb.DeleteUserRequest)(*pb.DeleteUserResponse, error){
+	query := `UPDATE users SET deleted_at = $2 WHERE id = $1 and deleted_at = 0`
+	_, err := u.db.Exec(query,user.Id, time.Now().Unix())
+	if err != nil{
+		return nil, err
+	}
+	return &pb.DeleteUserResponse{}, nil
 }
